@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  parentUserId String?  @map("parent_user_id") @db.Uuid
+  name         String
+  bio          String   @default("")
+  posts        Post[]
+  votes        Vote[]
+
+  @@map("users")
+}
+
+model Post {
+  id        String    @id @default(uuid()) @db.Uuid
+  parentId  String?   @map("parent_id") @db.Uuid
+  title     String
+  authorId  String    @map("author_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  pinned    Boolean   @default(false)
+  author    User      @relation(fields: [authorId], references: [id])
+  postData  PostData?
+  votes     Vote[]
+
+  @@index([parentId])
+  @@map("posts")
+}
+
+model PostData {
+  postId  String @id @map("post_id") @db.Uuid
+  content String @db.Text
+  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_data")
+}
+
+model Vote {
+  postId String   @map("post_id") @db.Uuid
+  userId String   @map("user_id") @db.Uuid
+  value  Int      // 1 for upvote, -1 for downvote
+  post   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@map("votes")
+}
